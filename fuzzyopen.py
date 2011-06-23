@@ -54,6 +54,10 @@ class FuzzyOpen(QDialog):
 				path += "/"
 			self.projectPaths.append( path )
 		
+		configFilters = self.config.group("Filters")
+		self.includeFilters = configFilters.readEntry("include")
+		self.excludeFilters = configFilters.readEntry("exclude")
+		
 		self.listUrl.setItemDelegate( HtmlItemDelegate(self.listUrl) )
 			
 		self.urls = []
@@ -155,6 +159,11 @@ class FuzzyOpen(QDialog):
 				configPaths.writePathEntry("path%s" % i, item.text())
 				self.projectPaths.append(item.text())
 				i += 1
+			
+			configFilters = self.config.group("Filters")
+			configFilters.writeEntry( "include", settingsDialog.txtIncludePatterns.text() )
+			configFilters.writeEntry( "exclude", settingsDialog.txtExcludePatterns.text() )
+			
 			self.config.sync()
 	
 	def exec_(self):
