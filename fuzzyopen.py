@@ -225,6 +225,34 @@ class FuzzyOpen(QDialog):
 	def kioFiles(self, itemlist):
 		for ifile in itemlist:
 			url = ifile.url()
+			
+			path = url.url()
+			if not path.endswith("/"):
+				path += "/"
+			
+			
+			if self.includeFilters:
+				print self.includeFilters
+				matched = False
+				i = 0
+				while not matched and i < len(self.includeFilters):
+					try:
+						if re.search(self.includeFilters[i], path):
+							matched = True
+					except re.error:
+						pass
+					i += 1
+				if not matched:
+					return
+			
+			for excludeFilter in self.excludeFilters:
+				try:
+					if re.search(excludeFilter, path):
+						return
+				except re.error:
+					pass
+				
+			
 			if ifile.isDir():
 				if self.recursion<self.maxRecursion:
 					self.dirList.append((self.recursion+1, url))
