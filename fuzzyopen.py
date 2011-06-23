@@ -20,12 +20,13 @@ class HtmlItemDelegate(QItemDelegate):
 		self.document = QTextDocument(self)
 		self.document.setDocumentMargin(0)
 		self.hl_color = QApplication.palette().highlight().color()
+		self.hl_color = ",".join( [`self.hl_color.red()`, `self.hl_color.green()`, `self.hl_color.blue()`] )
 	
 	def drawDisplay(self, painter, option, rect, text):
 		point = rect.topLeft()
 		painter.translate(point)
 		if option.state & QStyle.State_Selected:
-			text = "<div style='background-color: rgb(%d,%d,%d)'>%s</div>" % (self.hl_color.red(), self.hl_color.green(), self.hl_color.blue(), text)
+			text = "<div style='background-color: rgb(%s)'>%s</div>" % (self.hl_color, text)
 		self.document.setHtml(text)
 		self.document.drawContents(painter)
 		painter.translate(-point)
