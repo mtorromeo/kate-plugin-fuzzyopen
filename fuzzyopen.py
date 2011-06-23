@@ -55,8 +55,8 @@ class FuzzyOpen(QDialog):
 			self.projectPaths.append( path )
 		
 		configFilters = self.config.group("Filters")
-		self.includeFilters = configFilters.readEntry("include")
-		self.excludeFilters = configFilters.readEntry("exclude")
+		self.includeFilters = configFilters.readEntry("include").split(",")
+		self.excludeFilters = configFilters.readEntry("exclude").split(",")
 		
 		self.listUrl.setItemDelegate( HtmlItemDelegate(self.listUrl) )
 			
@@ -65,6 +65,41 @@ class FuzzyOpen(QDialog):
 		self.lister = KDirLister()
 		self.lister.newItems.connect(self.kioFiles)
 		self.lister.completed.connect(self.kioFinished)
+	
+	def exec_(self):
+		self.reset()
+	
+		katerect = kate.mainInterfaceWindow().window().rect()
+		diarect = self.rect()
+		diarect.moveCenter( katerect.center() )
+		self.move( diarect.topLeft() )
+	
+		url = kate.activeDocument().url()
+	
+		self.project = False
+		pi = 0
+		while pi < len(self.projectPaths) and not self.project:
+			if url.url().startswith( self.projectPaths[pi] ):
+				self.project = self.projectPaths[pi]
+			else:
+				pi += 1
+	
+		for doc in kate.documentManager.documents():
+			self.addFileUrl(doc.url(), "Open document")
+	
+		dirUrl = None
+		if self.project:
+			self.reason = "In project %s" % self.project
+			self.recursion = 0
+			dirUrl = KUrl(self.project)
+		else:
+			self.reason = "Same path of %s" % url.fileName()
+			self.lister.setMimeExcludeFilter(["inode/directory"])
+			dirUrl = url.upUrl()
+	
+		self.showProgress(dirUrl.url())
+		self.lister.openUrl(dirUrl)
+		return QDialog.exec_(self)
 
 	def showProgress(self, text):
 		self.lblProgress.setText(text)
@@ -97,7 +132,11 @@ class FuzzyOpen(QDialog):
 			if url.fileName().find( self.txtFilter.text() ) < 0:
 				self.listUrl.setItemHidden(item, True)
 			self.urls.append(url)
-			self.on_txtFilter_textEdited( self.txtFilter.text() )
+			
+			self.refreshFilter()
+	
+	def refreshFilter(self):
+		self.on_txtFilter_textEdited( self.txtFilter.text() )
 
 	def on_txtFilter_textEdited(self, s):
 		firstMatch = -1
@@ -161,45 +200,13 @@ class FuzzyOpen(QDialog):
 				i += 1
 			
 			configFilters = self.config.group("Filters")
-			configFilters.writeEntry( "include", settingsDialog.txtIncludePatterns.text() )
-			configFilters.writeEntry( "exclude", settingsDialog.txtExcludePatterns.text() )
+			self.includeFilters = settingsDialog.txtIncludePatterns.text().split(",")
+			self.excludeFilters = settingsDialog.txtIncludePatterns.text().split(",")
+			configFilters.writeEntry( "include", ",".join(self.includeFilters) )
+			configFilters.writeEntry( "exclude", ",".join(self.excludeFilters) )
 			
 			self.config.sync()
-	
-	def exec_(self):
-		self.reset()
-	
-		katerect = kate.mainInterfaceWindow().window().rect()
-		diarect = self.rect()
-		diarect.moveCenter( katerect.center() )
-		self.move( diarect.topLeft() )
-	
-		url = kate.activeDocument().url()
-	
-		self.project = False
-		pi = 0
-		while pi < len(self.projectPaths) and not self.project:
-			if url.url().startswith( self.projectPaths[pi] ):
-				self.project = self.projectPaths[pi]
-			else:
-				pi += 1
-	
-		for doc in kate.documentManager.documents():
-			self.addFileUrl(doc.url(), "Open document")
-	
-		dirUrl = None
-		if self.project:
-			self.reason = "In project %s" % self.project
-			self.recursion = 0
-			dirUrl = KUrl(self.project)
-		else:
-			self.reason = "Same path of %s" % url.fileName()
-			self.lister.setMimeExcludeFilter(["inode/directory"])
-			dirUrl = url.upUrl()
-	
-		self.showProgress(dirUrl.url())
-		self.lister.openUrl(dirUrl)
-		return QDialog.exec_(self)
+			self.refreshFilter()
 
 	def kioFiles(self, itemlist):
 		for ifile in itemlist:
