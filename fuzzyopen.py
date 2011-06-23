@@ -8,7 +8,7 @@ from PyKDE4.kio import KDirLister
 from PyKDE4.kdecore import KUrl, KMimeType, KConfig
 from PyKDE4.kdeui import KIconLoader
 from PyQt4 import uic
-from PyQt4.QtCore import Qt, pyqtSignature
+from PyQt4.QtCore import Qt, pyqtSignature, QObject, pyqtSignal
 from PyQt4.QtGui import QDialog, QListWidgetItem, QIcon, QItemDelegate, QTextDocument, QStyle, QApplication
 
 from settings import SettingsDialog
@@ -34,20 +34,21 @@ class HtmlItemDelegate(QItemDelegate):
 
 class FuzzyOpen(QDialog):
 	reason = ""
-	recursion = 0
-	maxRecursion = 10
 
 	def __init__(self, parent=None, connections={}):
+		self.urls = []
+		self.projectPaths = []
+		
 		QDialog.__init__(self, parent)
 		self.setModal(True)
 		uic.loadUi(os.path.join( os.path.dirname(__file__), "fuzzyopen.ui" ), self)
 		self.hideProgress()
 		self.iconLoader = KIconLoader()
 		self.btnSettings.setIcon( QIcon(self.iconLoader.loadIcon("configure", KIconLoader.Small)) )
+		self.listUrl.setItemDelegate( HtmlItemDelegate(self.listUrl) )
 		
 		self.config = KConfig("katefuzzyopenrc")
 		configPaths = self.config.group("ProjectPaths")
-		self.projectPaths = []
 		for key in configPaths.keyList():
 			path = configPaths.readPathEntry(key,"")
 			if not path.endswith("/"):
@@ -55,16 +56,12 @@ class FuzzyOpen(QDialog):
 			self.projectPaths.append( path )
 		
 		configFilters = self.config.group("Filters")
-		self.setIncludeFilters( configFilters.readEntry("include", "") )
-		self.setExcludeFilters( configFilters.readEntry("exclude", "~$\n\.bak$\n/\.") )
-		
-		self.listUrl.setItemDelegate( HtmlItemDelegate(self.listUrl) )
-			
-		self.urls = []
-		self.dirList = []
-		self.lister = KDirLister()
-		self.lister.newItems.connect(self.kioFiles)
-		self.lister.completed.connect(self.kioFinished)
+		self.lister = DirLister()
+		self.lister.fileFound.connect(self.listerFileFound)
+		self.lister.directoryChanged.connect(self.listerDirChanged)
+		self.lister.completed.connect(self.listerCompleted)
+		self.lister.setIncludeFilters( configFilters.readEntry("include", "") )
+		self.lister.setExcludeFilters( configFilters.readEntry("exclude", "~$\n\.bak$\n/\.") )
 	
 	def exec_(self):
 		self.reset()
@@ -87,37 +84,14 @@ class FuzzyOpen(QDialog):
 		for doc in kate.documentManager.documents():
 			self.addFileUrl(doc.url(), "Open document")
 	
-		dirUrl = None
 		if self.project:
 			self.reason = "In project %s" % self.project
-			self.recursion = 0
-			dirUrl = KUrl(self.project)
+			self.lister.list( KUrl(self.project) )
 		else:
 			self.reason = "Same path of %s" % url.fileName()
-			self.lister.setMimeExcludeFilter(["inode/directory"])
-			dirUrl = url.upUrl()
+			self.lister.list(url.upUrl(), recurse=False)
 	
-		self.showProgress(dirUrl.url())
-		self.lister.openUrl(dirUrl)
 		return QDialog.exec_(self)
-	
-	def setIncludeFilters(self, filters):
-		self.includeFilters = []
-		for filter in filters.splitlines():
-			if filter:
-				try:
-					self.includeFilters.append( re.compile(filter) )
-				except re.error:
-					pass
-	
-	def setExcludeFilters(self, filters):
-		self.excludeFilters = []
-		for filter in filters.splitlines():
-			if filter:
-				try:
-					self.excludeFilters.append( re.compile(filter) )
-				except re.error:
-					pass
 
 	def showProgress(self, text):
 		self.lblProgress.setText(text)
@@ -132,7 +106,6 @@ class FuzzyOpen(QDialog):
 		self.txtFilter.setFocus()
 		self.listUrl.clear()
 		self.lister.stop()
-		self.lister.clearMimeFilter()
 
 	def addFileUrl(self, url, reason=None):
 		if url not in self.urls:
@@ -200,6 +173,7 @@ class FuzzyOpen(QDialog):
 			self.on_listUrl_itemActivated( self.listUrl.selectedItems()[0] )
 
 	def on_listUrl_itemActivated(self, item):
+		self.lister.stop()
 		self.close()
 		i = self.listUrl.row(item)
 		if 0 <= i < len(self.urls):
@@ -209,8 +183,8 @@ class FuzzyOpen(QDialog):
 	@pyqtSignature("")
 	def on_btnSettings_clicked(self):
 		settingsDialog = SettingsDialog(kate.activeDocument().url(), self)
-		settingsDialog.txtIncludePatterns.setPlainText( "\n".join( [r.pattern for r in self.includeFilters] ) )
-		settingsDialog.txtExcludePatterns.setPlainText( "\n".join( [r.pattern for r in self.excludeFilters] ) )
+		settingsDialog.txtIncludePatterns.setPlainText( "\n".join( [r.pattern for r in self.lister.includeFilters] ) )
+		settingsDialog.txtExcludePatterns.setPlainText( "\n".join( [r.pattern for r in self.lister.excludeFilters] ) )
 		for path in self.projectPaths:
 			settingsDialog.listProjectPaths.addItem(path)
 		
@@ -228,14 +202,62 @@ class FuzzyOpen(QDialog):
 			
 			configFilters = self.config.group("Filters")
 			includeFilters = settingsDialog.txtIncludePatterns.toPlainText()
-			self.setIncludeFilters( includeFilters )
+			self.lister.setIncludeFilters( includeFilters )
 			configFilters.writeEntry( "include", includeFilters )
 				
 			excludeFilters = settingsDialog.txtExcludePatterns.toPlainText()
-			self.setExcludeFilters( excludeFilters )
+			self.lister.setExcludeFilters( excludeFilters )
 			configFilters.writeEntry( "exclude", excludeFilters )
 			
 			self.config.sync()
+
+	def listerFileFound(self, url):
+		self.addFileUrl(url, self.reason)
+	
+	def listerDirChanged(self, url):
+		self.showProgress(url.url())
+	
+	def listerCompleted(self):
+		self.hideProgress()
+
+
+class DirLister(QObject):
+	fileFound = pyqtSignal("KUrl")
+	directoryChanged = pyqtSignal("KUrl")
+	completed = pyqtSignal()
+	
+	recursion = 0
+	maxRecursion = 10
+	
+	def __init__(self):
+		QObject.__init__(self)
+		self.cache = {}
+		self.kio = KDirLister()
+		self.kio.newItems.connect(self.kioFiles)
+		self.kio.completed.connect(self.kioCompleted)
+		self.includeFilters = []
+		self.excludeFilters = []
+	
+	def stop(self):
+		self.kio.stop()
+	
+	def setIncludeFilters(self, filters):
+		self.includeFilters = []
+		for filter in filters.splitlines():
+			if filter:
+				try:
+					self.includeFilters.append( re.compile(filter) )
+				except re.error:
+					pass
+	
+	def setExcludeFilters(self, filters):
+		self.excludeFilters = []
+		for filter in filters.splitlines():
+			if filter:
+				try:
+					self.excludeFilters.append( re.compile(filter) )
+				except re.error:
+					pass
 	
 	def validMime(self, mime):
 		if mime.name() == "application/octet-stream":
@@ -249,15 +271,47 @@ class FuzzyOpen(QDialog):
 				return True
 		
 		return False
+	
+	def list(self, url, recurse=True):
+		self.recursion = 0 if recurse else self.maxRecursion
+		self.dirStack = []
+		self.cachedOpenUrl(url)
+	
+	def cachedOpenUrl(self, url):
+		self.cacheUrl = url.url() 
+		if self.cacheUrl in self.cache:
+			self.kioFiles(self.cache[self.cacheUrl])
+			self.kioCompleted()
+		else:
+			self.directoryChanged.emit(url)
+			self.kio.openUrl(url)
 
+	def kioCompleted(self):
+		if self.dirStack:
+			self.recursion, url = self.dirStack.pop()
+			self.cachedOpenUrl(url)
+		else:
+			self.completed.emit()
+	
 	def kioFiles(self, itemlist):
+		if type(itemlist) != list:
+			urlList = []
+			for item in itemlist:
+				urlList.append( dict(url = item.url().url(), isDir = item.isDir()) )
+			self.cache[self.cacheUrl] = urlList
+		
 		urls = []
 		
 		for ifile in itemlist:
-			url = ifile.url()
+			if type(ifile) == dict:
+				url = KUrl(ifile["url"])
+				isDir = ifile["isDir"]
+			else:
+				url = ifile.url()
+				isDir = ifile.isDir()
 			
 			path = url.url()
-			if ifile.isDir() and not path.endswith("/"):
+			if isDir and not path.endswith("/"):
 				path += "/"
 			
 			
@@ -281,25 +335,19 @@ class FuzzyOpen(QDialog):
 					continue
 				
 			
-			if ifile.isDir():
+			if isDir:
 				if self.recursion<self.maxRecursion:
-					self.dirList.append((self.recursion+1, url))
+					self.dirStack.append((self.recursion+1, url))
 			else:
 				mime = KMimeType.findByUrl(url)[0]
 				if self.validMime(mime):
 					urls.append(url)
 		
 		urls = sorted(urls, lambda a,b: -1 if len(a.url()) < len(b.url()) else 1)
+		
 		for url in urls:
-			self.addFileUrl(url, self.reason)
-	
-	def kioFinished(self):
-		if self.dirList:
-			self.recursion, dirUrl = self.dirList.pop()
-			self.showProgress(dirUrl.url())
-			self.lister.openUrl(dirUrl)
-		else:
-			self.hideProgress()
+			self.fileFound.emit(url)
+
 
 dialog = None
 
