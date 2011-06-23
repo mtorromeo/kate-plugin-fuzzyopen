@@ -44,15 +44,19 @@ class FuzzyOpen(QDialog):
 		self.hideProgress()
 		self.iconLoader = KIconLoader()
 		self.btnSettings.setIcon( QIcon(self.iconLoader.loadIcon("configure", KIconLoader.Small)) )
+		
 		self.config = KConfig("katefuzzyopenrc")
 		configPaths = self.config.group("ProjectPaths")
+		self.projectPaths = []
 		for key in configPaths.keyList():
-			self.projectPaths.append( configPaths.readPathEntry(key,"") )
+			path = configPaths.readPathEntry(key,"")
+			if not path.endswith("/"):
+				path += "/"
+			self.projectPaths.append( path )
 		
 		self.listUrl.setItemDelegate( HtmlItemDelegate(self.listUrl) )
 			
 		self.urls = []
-		self.projectPaths = []
 		self.dirList = []
 		self.lister = KDirLister()
 		self.lister.newItems.connect(self.kioFiles)
@@ -73,24 +77,29 @@ class FuzzyOpen(QDialog):
 		self.lister.stop()
 		self.lister.clearMimeFilter()
 
-	def addFileUrl(self, url, reason=""):
+	def addFileUrl(self, url, reason=None):
 		if url not in self.urls:
 			mime = KMimeType.findByUrl(url)[0]
 			item = QListWidgetItem()
-			item.setText( "<b>%s</b>: <i>%s</i>" % ( url.fileName(), url.url() ) )
+			path = url.url()
+			if self.project and path.startswith(self.project):
+				path = path[ len(self.project): ]
+			item.setWhatsThis(path)
+			item.setText( "<b>%s</b>: <i>%s</i>" % ( url.fileName(), path ) )
 			if reason:
 				item.setToolTip(reason)
 			item.setIcon( QIcon(self.iconLoader.loadMimeTypeIcon(mime.iconName(), KIconLoader.Small)) )
 			self.listUrl.addItem(item)
-			if str(url.fileName()).find( self.txtFilter.text() ) < 0:
+			if url.fileName().find( self.txtFilter.text() ) < 0:
 				self.listUrl.setItemHidden(item, True)
 			self.urls.append(url)
+			self.on_txtFilter_textEdited( self.txtFilter.text() )
 
 	def on_txtFilter_textEdited(self, s):
 		firstMatch = -1
 		pattern = re.compile( ".*".join( [re.escape(c) for c in s] ) )
 		for i in range(self.listUrl.count()):
-			matched = pattern.search(self.listUrl.item(i).text())
+			matched = pattern.search(self.listUrl.item(i).whatsThis())
 			if matched and firstMatch<0:
 				firstMatch = i
 			self.listUrl.setItemHidden(self.listUrl.item(i), matched is None)
@@ -156,27 +165,24 @@ class FuzzyOpen(QDialog):
 		diarect.moveCenter( katerect.center() )
 		self.move( diarect.topLeft() )
 	
-		for doc in kate.documentManager.documents():
-			self.addFileUrl(doc.url(), "Open document")
-	
 		url = kate.activeDocument().url()
 	
-		projectFound = False
+		self.project = False
 		pi = 0
-		while pi < len(self.projectPaths) and not projectFound:
-			path = self.projectPaths[pi]
-			if not path.endsWith("/"):
-				path += "/"
-			if url.url().startsWith(path):
-				projectFound = True
+		while pi < len(self.projectPaths) and not self.project:
+			if url.url().startswith( self.projectPaths[pi] ):
+				self.project = self.projectPaths[pi]
 			else:
 				pi += 1
 	
+		for doc in kate.documentManager.documents():
+			self.addFileUrl(doc.url(), "Open document")
+	
 		dirUrl = None
-		if projectFound:
-			self.reason = "In project %s" % self.projectPaths[pi]
+		if self.project:
+			self.reason = "In project %s" % self.project
 			self.recursion = 0
-			dirUrl = KUrl(self.projectPaths[pi])
+			dirUrl = KUrl(self.project)
 		else:
 			self.reason = "Same path of %s" % url.fileName()
 			self.lister.setMimeExcludeFilter(["inode/directory"])

@@ -23,7 +23,10 @@ class SettingsDialog(QDialog):
 	@pyqtSignature("")
 	def on_btnAdd_clicked(self):
 		dirUrl = KDirSelectDialog.selectDirectory(self.__url, False, self)
-		self.listProjectPaths.addItem(dirUrl.url())
+		path = dirUrl.url()
+		if not path.endswith("/"):
+			path += "/"
+		self.listProjectPaths.addItem( path )
 
 	@pyqtSignature("")
 	def on_btnDel_clicked(self):
