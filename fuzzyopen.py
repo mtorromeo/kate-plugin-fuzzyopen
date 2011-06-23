@@ -137,16 +137,22 @@ class FuzzyOpen(QDialog):
 	def addFileUrl(self, url, reason=None):
 		if url not in self.urls:
 			mime = KMimeType.findByUrl(url)[0]
-			item = QListWidgetItem()
 			path = url.url()
+			filename = url.fileName()
+			
+			item = QListWidgetItem()
 			if self.project and path.startswith(self.project):
 				path = path[ len(self.project): ]
-			item.setWhatsThis(path)
-			item.setText( "<b>%s</b>: <i>%s</i>" % ( url.fileName(), path ) )
+				item.setWhatsThis(path)
+				item.setText( "<b>%s</b>: <i>%s</i>" % ( filename, path ) )
+			else:
+				item.setWhatsThis(filename)
+				item.setText( "<b>%s</b>" % filename )
 			if reason:
 				item.setToolTip(reason)
 			item.setIcon( QIcon(self.iconLoader.loadMimeTypeIcon(mime.iconName(), KIconLoader.Small)) )
 			self.listUrl.addItem(item)
+			
 			if url.fileName().find( self.txtFilter.text() ) < 0:
 				self.listUrl.setItemHidden(item, True)
 			self.urls.append(url)
