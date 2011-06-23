@@ -56,7 +56,7 @@ class FuzzyOpen(QDialog):
 		
 		configFilters = self.config.group("Filters")
 		self.setIncludeFilters( configFilters.readEntry("include", "") )
-		self.setExcludeFilters( configFilters.readEntry("exclude", "~$,\.bak$,/\.") )
+		self.setExcludeFilters( configFilters.readEntry("exclude", "~$\n\.bak$\n/\.") )
 		
 		self.listUrl.setItemDelegate( HtmlItemDelegate(self.listUrl) )
 			
@@ -103,7 +103,7 @@ class FuzzyOpen(QDialog):
 	
 	def setIncludeFilters(self, filters):
 		self.includeFilters = []
-		for filter in filters.split(","):
+		for filter in filters.splitlines():
 			if filter:
 				try:
 					self.includeFilters.append( re.compile(filter) )
@@ -112,7 +112,7 @@ class FuzzyOpen(QDialog):
 	
 	def setExcludeFilters(self, filters):
 		self.excludeFilters = []
-		for filter in filters.split(","):
+		for filter in filters.splitlines():
 			if filter:
 				try:
 					self.excludeFilters.append( re.compile(filter) )
@@ -203,8 +203,8 @@ class FuzzyOpen(QDialog):
 	@pyqtSignature("")
 	def on_btnSettings_clicked(self):
 		settingsDialog = SettingsDialog(kate.activeDocument().url(), self)
-		settingsDialog.txtIncludePatterns.setText( ",".join(self.includeFilters) )
-		settingsDialog.txtExcludePatterns.setText( ",".join(self.excludeFilters) )
+		settingsDialog.txtIncludePatterns.setPlainText( "\n".join( [r.pattern for r in self.includeFilters] ) )
+		settingsDialog.txtExcludePatterns.setPlainText( "\n".join( [r.pattern for r in self.excludeFilters] ) )
 		for path in self.projectPaths:
 			settingsDialog.listProjectPaths.addItem(path)
 		
@@ -221,11 +221,11 @@ class FuzzyOpen(QDialog):
 				i += 1
 			
 			configFilters = self.config.group("Filters")
-			includeFilters = settingsDialog.txtIncludePatterns.text()
+			includeFilters = settingsDialog.txtIncludePatterns.toPlainText()
 			self.setIncludeFilters( includeFilters )
 			configFilters.writeEntry( "include", includeFilters )
 				
-			excludeFilters = settingsDialog.txtExcludePatterns.text()
+			excludeFilters = settingsDialog.txtExcludePatterns.toPlainText()
 			self.setExcludeFilters( excludeFilters )
 			configFilters.writeEntry( "exclude", excludeFilters )
 			

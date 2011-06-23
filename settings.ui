@@ -66,37 +66,26 @@
       <attribute name="title">
        <string>Filters</string>
       </attribute>
-      <layout class="QFormLayout" name="formLayout">
-       <property name="fieldGrowthPolicy">
-        <enum>QFormLayout::ExpandingFieldsGrow</enum>
-       </property>
-       <item row="1" column="0">
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
         <widget class="QLabel" name="lblInclude">
          <property name="text">
-          <string>Include patterns</string>
+          <string>Include patterns:</string>
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
-        <widget class="QLineEdit" name="txtIncludePatterns">
-         <property name="text">
-          <string></string>
-         </property>
-        </widget>
+       <item>
+        <widget class="QPlainTextEdit" name="txtIncludePatterns"/>
        </item>
-       <item row="3" column="0">
+       <item>
         <widget class="QLabel" name="lblExclude">
          <property name="text">
-          <string>Exclude patterns</string>
+          <string>Exclude patterns:</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
-        <widget class="QLineEdit" name="txtExcludePatterns">
-         <property name="text">
-          <string>~$,\.bak$,/\.</string>
-         </property>
-        </widget>
+       <item>
+        <widget class="QPlainTextEdit" name="txtExcludePatterns"/>
        </item>
       </layout>
      </widget>
