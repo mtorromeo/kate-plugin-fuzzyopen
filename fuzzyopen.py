@@ -164,7 +164,7 @@ class FuzzyOpen(QDialog):
 
 	def on_txtFilter_textEdited(self, s):
 		firstMatch = -1
-		pattern = re.compile( ".*".join( [re.escape(c) for c in s] ) )
+		pattern = re.compile( ".*".join( [re.escape(c) for c in s] ), re.I )
 		for i in range(self.listUrl.count()):
 			matched = pattern.search(self.listUrl.item(i).whatsThis())
 			if matched and firstMatch<0:
