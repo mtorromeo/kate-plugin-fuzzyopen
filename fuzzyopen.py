@@ -35,7 +35,7 @@ class HtmlItemDelegate(QItemDelegate):
 class FuzzyOpen(QDialog):
 	reason = ""
 	recursion = 0
-	maxRecursion = 3
+	maxRecursion = 10
 
 	def __init__(self, parent=None, connections={}):
 		QDialog.__init__(self, parent)
