@@ -236,8 +236,23 @@ class FuzzyOpen(QDialog):
 			configFilters.writeEntry( "exclude", excludeFilters )
 			
 			self.config.sync()
+	
+	def validMime(self, mime):
+		if mime.name() == "application/octet-stream":
+			return True
+		
+		if mime.name().startswith("text/"):
+			return True
+		
+		for parentMime in mime.parentMimeTypes():
+			if parentMime.startswith("text/"):
+				return True
+		
+		return False
 
 	def kioFiles(self, itemlist):
+		urls = []
+		
 		for ifile in itemlist:
 			url = ifile.url()
 			
@@ -271,10 +286,12 @@ class FuzzyOpen(QDialog):
 					self.dirList.append((self.recursion+1, url))
 			else:
 				mime = KMimeType.findByUrl(url)[0]
-				if mime.name().startswith("text/") or mime.name() in ["application/octet-stream", "application/javascript"] or "text/plain" in mime.parentMimeTypes():
-					self.addFileUrl(url, self.reason)
-				else:
-					print mime.name(), url.fileName()
+				if self.validMime(mime):
+					urls.append(url)
+		
+		urls = sorted(urls, lambda a,b: -1 if len(a.url()) < len(b.url()) else 1)
+		for url in urls:
+			self.addFileUrl(url, self.reason)
 	
 	def kioFinished(self):
 		if self.dirList:
