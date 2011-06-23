@@ -235,7 +235,6 @@ class FuzzyOpen(QDialog):
 			
 			
 			if self.includeFilters:
-				print self.includeFilters
 				matched = False
 				i = 0
 				while not matched and i < len(self.includeFilters):
