@@ -9,20 +9,20 @@ from PyKDE4.kio import KDirSelectDialog
 from PyKDE4.kdeui import KIconLoader
 
 class SettingsDialog(QDialog):
-	__url = None
-
 	def __init__(self, url, parent=None):
 		QDialog.__init__(self, parent)
 		self.setModal(True)
 		uic.loadUi(os.path.join( os.path.dirname(__file__), "settings.ui" ), self)
-		self.__url = url
+		
 		iconLoader = KIconLoader()
 		self.btnAdd.setIcon( QIcon(iconLoader.loadIcon("list-add", KIconLoader.Small)) )
 		self.btnDel.setIcon( QIcon(iconLoader.loadIcon("list-remove", KIconLoader.Small)) )
+		
+		self.url = url
 	
 	@pyqtSignature("")
 	def on_btnAdd_clicked(self):
-		dirUrl = KDirSelectDialog.selectDirectory(self.__url, False, self)
+		dirUrl = KDirSelectDialog.selectDirectory(self.url, False, self)
 		path = dirUrl.url()
 		if not path.endswith("/"):
 			path += "/"

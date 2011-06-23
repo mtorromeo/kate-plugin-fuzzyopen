@@ -197,8 +197,11 @@ class FuzzyOpen(QDialog):
 	@pyqtSignature("")
 	def on_btnSettings_clicked(self):
 		settingsDialog = SettingsDialog(kate.activeDocument().url(), self)
+		settingsDialog.txtIncludePatterns.setText( ",".join(self.includeFilters) )
+		settingsDialog.txtExcludePatterns.setText( ",".join(self.excludeFilters) )
 		for path in self.projectPaths:
 			settingsDialog.listProjectPaths.addItem(path)
+		
 		if settingsDialog.exec_():
 			configPaths = self.config.group("ProjectPaths")
 			for key in configPaths.keyList():
