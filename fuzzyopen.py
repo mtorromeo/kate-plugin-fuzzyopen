@@ -271,7 +271,7 @@ class FuzzyOpen(QDialog):
 					self.dirList.append((self.recursion+1, url))
 			else:
 				mime = KMimeType.findByUrl(url)[0]
-				if mime.name().startswith("text/") or mime.name()=="application/octet-stream" or "text/plain" in mime.parentMimeTypes():
+				if mime.name().startswith("text/") or mime.name() in ["application/octet-stream", "application/javascript"] or "text/plain" in mime.parentMimeTypes():
 					self.addFileUrl(url, self.reason)
 				else:
 					print mime.name(), url.fileName()
