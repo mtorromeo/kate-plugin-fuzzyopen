@@ -55,8 +55,8 @@ class FuzzyOpen(QDialog):
 			self.projectPaths.append( path )
 		
 		configFilters = self.config.group("Filters")
-		self.setIncludeFilters( configFilters.readEntry("include") )
-		self.setExcludeFilters( configFilters.readEntry("exclude") )
+		self.setIncludeFilters( configFilters.readEntry("include", "") )
+		self.setExcludeFilters( configFilters.readEntry("exclude", "~$,\.bak$,/\.") )
 		
 		self.listUrl.setItemDelegate( HtmlItemDelegate(self.listUrl) )
 			
