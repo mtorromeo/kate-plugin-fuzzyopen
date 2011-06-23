@@ -80,7 +80,7 @@
        <item row="1" column="1">
         <widget class="QLineEdit" name="txtIncludePatterns">
          <property name="text">
-          <string>*</string>
+          <string></string>
          </property>
         </widget>
        </item>
@@ -94,7 +94,7 @@
        <item row="3" column="1">
         <widget class="QLineEdit" name="txtExcludePatterns">
          <property name="text">
-          <string>*~,*.bak</string>
+          <string>~$,\.bak$,/\.</string>
          </property>
         </widget>
        </item>
