@@ -15,8 +15,17 @@
    <string>Fuzzy Open</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="margin">
+    <number>0</number>
+   </property>
    <item>
     <layout class="QGridLayout" name="gridLayout">
+     <property name="spacing">
+      <number>0</number>
+     </property>
      <item row="0" column="0">
       <widget class="QEventLineEdit" name="txtFilter"/>
      </item>
@@ -39,6 +48,12 @@
     <widget class="QLabel" name="lblProgress">
      <property name="text">
       <string/>
+     </property>
+     <property name="margin">
+      <number>1</number>
+     </property>
+     <property name="indent">
+      <number>2</number>
      </property>
     </widget>
    </item>
