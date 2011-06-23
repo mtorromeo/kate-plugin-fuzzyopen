@@ -40,12 +40,14 @@ class FuzzyOpen(QDialog):
 		self.projectPaths = []
 		
 		QDialog.__init__(self, parent)
-		self.setModal(True)
 		uic.loadUi(os.path.join( os.path.dirname(__file__), "fuzzyopen.ui" ), self)
+		self.setModal(True)
+		self.listUrl.setItemDelegate( HtmlItemDelegate(self.listUrl) )
 		self.hideProgress()
+		
 		self.iconLoader = KIconLoader()
 		self.btnSettings.setIcon( QIcon(self.iconLoader.loadIcon("configure", KIconLoader.Small)) )
-		self.listUrl.setItemDelegate( HtmlItemDelegate(self.listUrl) )
+		self.btnRefresh.setIcon( QIcon(self.iconLoader.loadIcon("view-refresh", KIconLoader.Small)) )
 		
 		self.config = KConfig("katefuzzyopenrc")
 		configPaths = self.config.group("ProjectPaths")
@@ -64,34 +66,21 @@ class FuzzyOpen(QDialog):
 		self.lister.setExcludeFilters( configFilters.readEntry("exclude", "~$\n\.bak$\n/\.") )
 	
 	def exec_(self):
-		self.reset()
-	
 		katerect = kate.mainInterfaceWindow().window().rect()
 		diarect = self.rect()
 		diarect.moveCenter( katerect.center() )
 		self.move( diarect.topLeft() )
-	
-		url = kate.activeDocument().url()
-	
-		self.project = False
-		pi = 0
-		while pi < len(self.projectPaths) and not self.project:
-			if url.url().startswith( self.projectPaths[pi] ):
-				self.project = self.projectPaths[pi]
-			else:
-				pi += 1
-	
-		for doc in kate.documentManager.documents():
-			self.addFileUrl(doc.url(), "Open document")
-	
-		if self.project:
-			self.reason = "In project %s" % self.project
-			self.lister.list( KUrl(self.project) )
-		else:
-			self.reason = "Same path of %s" % url.fileName()
-			self.lister.list(url.upUrl(), recurse=False)
+		
+		self.reset()
+		self.list()
 	
 		return QDialog.exec_(self)
+	
+	def getProjectUrl(self, url):
+		for path in self.projectPaths:
+			if url.url().startswith( path ):
+				return path
+		return False
 
 	def showProgress(self, text):
 		self.lblProgress.setText(text)
@@ -106,6 +95,22 @@ class FuzzyOpen(QDialog):
 		self.txtFilter.setFocus()
 		self.listUrl.clear()
 		self.lister.stop()
+	
+	def list(self):
+		url = kate.activeDocument().url()
+		self.project = self.getProjectUrl(url)
+	
+		for doc in kate.documentManager.documents():
+			self.addFileUrl(doc.url(), "Open document")
+	
+		if self.project:
+			self.reason = "In project %s" % self.project
+			self.rootPath = KUrl(self.project)
+		else:
+			self.reason = "Same path of %s" % url.fileName()
+			self.rootPath = url.upUrl()
+			
+		self.lister.list( self.rootPath, recurse = self.project != False )
 
 	def addFileUrl(self, url, reason=None):
 		if url not in self.urls:
@@ -210,6 +215,15 @@ class FuzzyOpen(QDialog):
 			configFilters.writeEntry( "exclude", excludeFilters )
 			
 			self.config.sync()
+	
+	@pyqtSignature("")
+	def on_btnRefresh_clicked(self):
+		url = self.rootPath.url()
+		for k in self.lister.cache.keys():
+			if k.startswith(url):
+				del self.lister.cache[k]
+		self.reset()
+		self.list()
 
 	def listerFileFound(self, url):
 		self.addFileUrl(url, self.reason)
