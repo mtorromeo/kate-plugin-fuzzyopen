@@ -55,8 +55,8 @@ class FuzzyOpen(QDialog):
 			self.projectPaths.append( path )
 		
 		configFilters = self.config.group("Filters")
-		self.includeFilters = configFilters.readEntry("include").split(",")
-		self.excludeFilters = configFilters.readEntry("exclude").split(",")
+		self.setIncludeFilters( configFilters.readEntry("include") )
+		self.setExcludeFilters( configFilters.readEntry("exclude") )
 		
 		self.listUrl.setItemDelegate( HtmlItemDelegate(self.listUrl) )
 			
@@ -100,6 +100,18 @@ class FuzzyOpen(QDialog):
 		self.showProgress(dirUrl.url())
 		self.lister.openUrl(dirUrl)
 		return QDialog.exec_(self)
+	
+	def setIncludeFilters(self, filters):
+		if filters:
+			self.includeFilters = filters.split(",")
+		else:
+			self.includeFilters = []
+	
+	def setExcludeFilters(self, filters):
+		if filters:
+			self.excludeFilters = filters.split(",")
+		else:
+			self.excludeFilters = []
 
 	def showProgress(self, text):
 		self.lblProgress.setText(text)
@@ -200,13 +212,15 @@ class FuzzyOpen(QDialog):
 				i += 1
 			
 			configFilters = self.config.group("Filters")
-			self.includeFilters = settingsDialog.txtIncludePatterns.text().split(",")
-			self.excludeFilters = settingsDialog.txtIncludePatterns.text().split(",")
-			configFilters.writeEntry( "include", ",".join(self.includeFilters) )
-			configFilters.writeEntry( "exclude", ",".join(self.excludeFilters) )
+			includeFilters = settingsDialog.txtIncludePatterns.text()
+			self.setIncludeFilters( includeFilters )
+			configFilters.writeEntry( "include", includeFilters )
+				
+			excludeFilters = settingsDialog.txtExcludePatterns.text()
+			self.setExcludeFilters( excludeFilters )
+			configFilters.writeEntry( "exclude", excludeFilters )
 			
 			self.config.sync()
-			self.refreshFilter()
 
 	def kioFiles(self, itemlist):
 		for ifile in itemlist:
