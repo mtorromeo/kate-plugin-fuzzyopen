@@ -245,14 +245,19 @@ class FuzzyOpen(QDialog):
 						pass
 					i += 1
 				if not matched:
-					return
+					continue
 			
-			for excludeFilter in self.excludeFilters:
-				try:
-					if re.search(excludeFilter, path):
-						return
-				except re.error:
-					pass
+			if self.excludeFilters:
+				matched = False
+				for excludeFilter in self.excludeFilters:
+					try:
+						if re.search(excludeFilter, path):
+							matched = True
+							break
+					except re.error:
+						pass
+				if matched:
+					continue
 				
 			
 			if ifile.isDir():
