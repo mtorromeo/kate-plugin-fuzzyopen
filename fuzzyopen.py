@@ -102,16 +102,22 @@ class FuzzyOpen(QDialog):
 		return QDialog.exec_(self)
 	
 	def setIncludeFilters(self, filters):
-		if filters:
-			self.includeFilters = filters.split(",")
-		else:
-			self.includeFilters = []
+		self.includeFilters = []
+		for filter in filters.split(","):
+			if filter:
+				try:
+					self.includeFilters.append( re.compile(filter) )
+				except re.error:
+					pass
 	
 	def setExcludeFilters(self, filters):
-		if filters:
-			self.excludeFilters = filters.split(",")
-		else:
-			self.excludeFilters = []
+		self.excludeFilters = []
+		for filter in filters.split(","):
+			if filter:
+				try:
+					self.excludeFilters.append( re.compile(filter) )
+				except re.error:
+					pass
 
 	def showProgress(self, text):
 		self.lblProgress.setText(text)
@@ -238,11 +244,8 @@ class FuzzyOpen(QDialog):
 				matched = False
 				i = 0
 				while not matched and i < len(self.includeFilters):
-					try:
-						if re.search(self.includeFilters[i], path):
-							matched = True
-					except re.error:
-						pass
+					if self.includeFilters[i].search(path):
+						matched = True
 					i += 1
 				if not matched:
 					continue
@@ -250,12 +253,9 @@ class FuzzyOpen(QDialog):
 			if self.excludeFilters:
 				matched = False
 				for excludeFilter in self.excludeFilters:
-					try:
-						if re.search(excludeFilter, path):
-							matched = True
-							break
-					except re.error:
-						pass
+					if excludeFilter.search(path):
+						matched = True
+						break
 				if matched:
 					continue
 				
