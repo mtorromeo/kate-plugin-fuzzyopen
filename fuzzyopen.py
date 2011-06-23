@@ -242,7 +242,7 @@ class FuzzyOpen(QDialog):
 			url = ifile.url()
 			
 			path = url.url()
-			if not path.endswith("/"):
+			if ifile.isDir() and not path.endswith("/"):
 				path += "/"
 			
 			
