@@ -2,6 +2,8 @@ Kate FuzzyOpen plugin
 ---------------------
 This plugin implements a fuzzy-style open dialog. The plugin can be invoked from the **Files > Fuzzy Open** menu action or via the **Meta+T** shortcut (Meta is usually the Windows key).
 
+.. image:: https://lh4.googleusercontent.com/-zfLtqjJH2TI/TyVhx3dnFAI/AAAAAAAAEF0/KslF6PZAAU0/s900/kate-plugin-fuzzyopen.png
+
 Installation
 ''''''''''''
 Copy or link the fuzzyopen directory under *~/.kde4/share/apps/kate/pate/* to install it only for the current user, or do the same in */usr/share/apps/kate/pate/* to do it globally.
