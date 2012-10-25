@@ -23,7 +23,7 @@ Copy or link the fuzzyopen directory under *~/.kde4/share/apps/kate/pate/* to in
 
 Requirements
 ''''''''''''
-This plugin is developed in python and requires the `Pâté plugin system <https://github.com/mtorromeo/pate>`_ for Kate to be installed.
+This plugin is developed in python and requires the `Pâté plugin system <http://kate-editor.org/2012/07/01/python-plugin-developer-guide-part-1/>`_ for Kate to be installed.
 Note that this is a fork of the original project which contains some modifications that are required for the plugin to work.
 
 LICENSE
